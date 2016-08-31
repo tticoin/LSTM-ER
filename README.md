@@ -60,7 +60,7 @@ see [data/README.md](data/README.md)
 
 YAML files for ACE2004 are not included. Please modify yaml/parameter-ace2005.yaml.
 
-Results may not be consistent from the original paper due to the differences in the environments.
+Scores may not be consistent with those in the original paper due to the differences in the environments.
 
 Please refer to the following ACL paper when using this software.
 
