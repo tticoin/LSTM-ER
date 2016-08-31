@@ -34,25 +34,25 @@ cd ..
 
 ## Preparation of the data sets
 
-see data/README.md
+see [data/README.md](data/README.md)
 
 ## Training models
 
-ACE 2005 (Relation extraction) 
+### ACE 2005 (Relation extraction) 
 
 `build/relation/RelationExtraction --train -y yaml/parameter-ace2005.yaml`
 
-SemEval 2010 Task 8 (Relation classification) 
+### SemEval 2010 Task 8 (Relation classification) 
 
 `build/relation/RelationExtraction --train -y yaml/parameter-semeval-2010.yaml`
 
 ## Testing models
 
-ACE 2005 (Relation extraction) 
+### ACE 2005 (Relation extraction) 
 
 `build/relation/RelationExtraction --test -y yaml/parameter-ace2005.yaml`
 
-SemEval 2010 Task 8 (Relation classification) 
+### SemEval 2010 Task 8 (Relation classification) 
 
 `build/relation/RelationExtraction --test -y yaml/parameter-semeval-2010.yaml`
 
