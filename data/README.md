@@ -19,7 +19,9 @@ unzip stanford-postagger-2015-04-20.zip
 cd ..
 ```
 
-## copy and convert each corpus (Please replace the directories for the original corpora.)
+## copy and convert each corpus 
+
+Please set the environment variables for the directories, or directly put the directories in the following commands beforehand.
 
 ### ACE 2004
 
