@@ -53,11 +53,13 @@ cd ..
 ```
 cd models/
 wget wget http://tti-coin.jp/data/semeval-test.txt.gz
-gunzip ace2005-test.txt.gz
+gunzip semeval-test.txt.gz
 cd ..
 ```
 
 ## Testing models
+
+Prediction results will be written as *.pred.ann in the test corpus directory.
 
 ### ACE 2005 (Relation extraction) 
 
@@ -81,7 +83,7 @@ cd ..
 
 YAML files for ACE2004 are not included. Please modify yaml/parameter-ace2005.yaml.
 
-Scores may not be consistent with those in the original paper due to the differences in the environments.
+Scores may not be consistent with those of our paper in different environments. 
 
 Please cite our ACL paper when using this software.
 
