@@ -11,7 +11,6 @@
 #include "cnn/zlstm.h"
 #include "cnn/treelstm.h"
 #include "cnn/deptreelstm.h"
-#include "cnn/adeptreelstm.h"
 #include "cnn/training.h"
 #include "Parameter.h"
 #include "Document.h"
