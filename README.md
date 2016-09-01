@@ -43,7 +43,7 @@ see [data/README.md](data/README.md)
 
 ```
 cd models/
-wget wget http://tti-coin.jp/data/ace2005-test.txt.gz
+wget http://tti-coin.jp/data/ace2005-test.txt.gz
 gunzip ace2005-test.txt.gz
 cd ..
 ```
@@ -52,7 +52,7 @@ cd ..
 
 ```
 cd models/
-wget wget http://tti-coin.jp/data/semeval-test.txt.gz
+wget http://tti-coin.jp/data/semeval-test.txt.gz
 gunzip semeval-test.txt.gz
 cd ..
 ```
