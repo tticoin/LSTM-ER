@@ -84,7 +84,7 @@ Prediction results will be written as *.pred.ann in the test corpus directory.
 
 YAML files for ACE2004 are not included. Please modify yaml/parameter-ace2005.yaml.
 
-Scores may not be consistent with those of our paper in different environments. 
+Scores may not be consistent with those in our paper due to the differences in the environments. 
 
 Please cite our ACL paper when using this software.
 
