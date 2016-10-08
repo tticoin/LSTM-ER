@@ -5,6 +5,15 @@
 * nltk (for stanford pos tagger)
 * java (for stanford tools)
 * zsh
+* task datasets (see below)
+
+# Links to tasks
+
+* ACE 2004 (https://catalog.ldc.upenn.edu/LDC2005T09)
+* ACE 2005 (https://catalog.ldc.upenn.edu/LDC2006T06)
+* SemEval 2010 Task 8 (https://docs.google.com/document/d/1QO_CnmvNRnYwNWu1-QCAeR5ToQYkXUqFeAJbdEhsq7w/preview)
+
+Please note that ACE corpora are not free.
 
 # Usage
 
