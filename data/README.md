@@ -7,7 +7,7 @@
 * zsh
 * task datasets (see below)
 
-# Links to tasks
+# Links to tasks/data sets
 
 * ACE 2004 (https://catalog.ldc.upenn.edu/LDC2005T09)
 * ACE 2005 (https://catalog.ldc.upenn.edu/LDC2006T06)
