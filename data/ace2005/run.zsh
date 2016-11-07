@@ -17,7 +17,7 @@ done
 # adjust offsets
 for i in text/*.split.txt
 do
-    echo $i && python3 ../common/standoff.py text/`basename $i .split.txt`.txt result/`basename $i .split.txt`.ann $i >! text/`basename $i .split.txt`.split.ann
+    echo $i && python3 ../common/standoff.py result/`basename $i .split.txt`.txt result/`basename $i .split.txt`.ann $i >! text/`basename $i .split.txt`.split.ann
 done &>! log &
 # fix sentence split errors
 mkdir fixed
