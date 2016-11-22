@@ -29,6 +29,7 @@ cd ..
 ## Preparation of the pretrained embeddings
 
 ```
+mkdir dict
 cd dict/
 wget http://tti-coin.jp/data/wikipedia200.bin
 cd ..
