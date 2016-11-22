@@ -67,7 +67,7 @@ int main(int argc, char **argv){
         cerr << "test: " << endl;
         model.predict(test_tables, true);
       }
-      ofstream os(params.model_file());
+      std::ofstream os(params.model_file());
       model.save_model(os);
       os.close();
     }
@@ -75,7 +75,7 @@ int main(int argc, char **argv){
     Dictionary dict2;
     if(params.do_ner() && params.entity_iteration() > 0){
       // pretraining
-      ifstream is(params.model_file());
+      std::ifstream is(params.model_file());
       model = new RelLSTMModel(params, dict2, is);
       is.close();
     }else{
@@ -89,13 +89,13 @@ int main(int argc, char **argv){
       cerr << "test: " << endl;
       model->predict(test_tables);
     }
-    ofstream os(params.model_file());
+    std::ofstream os(params.model_file());
     model->save_model(os);
     os.close();
     delete model;
   }else if(do_test){
     Dictionary dict;
-    ifstream is(params.model_file());
+    std::ifstream is(params.model_file());
     RelLSTMModel model(params, dict, is);
     is.close();
     path p(params.test_dir().c_str());

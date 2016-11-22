@@ -291,7 +291,7 @@ Document::~Document(){
 };
 
 UnicodeString* Document::read_file(const string& file) const{
-  ifstream ifs;
+  std::ifstream ifs;
   ifs.open(file, ios::binary);
   if(!ifs){
     if(VERBOSITY > 0){
@@ -339,7 +339,7 @@ unordered_map<string, string> parse_attributes(const string& attr_string){
 }
 
 void Document::read_parse(const string& file, const ParseParameters& parse) {
-  ifstream ifs;
+  std::ifstream ifs;
   ifs.open(file);
   if(!ifs){
     if(VERBOSITY > 0){
@@ -416,7 +416,7 @@ bool term_less(Term*& t1, Term*& t2){
 
 void Document::read_annotation(const string& file) {
   assert(sentences_.size() > 0);
-  ifstream ifs;
+  std::ifstream ifs;
   ifs.open(file);
   if(ifs){
     has_annotation_ = true;
