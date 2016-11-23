@@ -26,10 +26,15 @@ make
 cd ..
 ```
 
+## Creation of directories
+
+```
+mkdir dict models
+```
+
 ## Preparation of the pretrained embeddings
 
 ```
-mkdir dict
 cd dict/
 wget http://tti-coin.jp/data/wikipedia200.bin
 cd ..
