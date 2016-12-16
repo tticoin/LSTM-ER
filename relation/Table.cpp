@@ -30,8 +30,15 @@ Table::Table(const Sentence& sentence):
   }
   // relation labels
   for(IndexRelation rel:sentence.index_rels()){
+    if(rel.arg2() == rel.arg1()){
+      cerr << "self-relation is detected for " << rel.arg1() << endl;
+    }
+    if(cells_[rel.arg2()][rel.arg1()]->gold_label() >= 0){
+      cerr << "nested relation is detected for (" << rel.arg1() << "," << rel.arg2() << ")" << endl;
+    }
     assert(rel.arg2() != rel.arg1());
     assert(cells_[rel.arg2()][rel.arg1()]->gold_label() < 0);
+    
     cells_[rel.arg2()][rel.arg1()]->set_gold_label(rel.type());
     cells_[rel.arg2()][rel.arg1()]->set_gold_id(rel.id());
   }
@@ -46,6 +53,9 @@ Table::Table(const Sentence& sentence):
   sequence_->reserve(seq_size_);
   for(int dist = 0; dist < (int)size_;++dist){
     for(int i = size_ - dist - 1;i >= 0;--i){
+      if(i < 0 || i >= (int)size_ || i+dist < 0 || i+dist >= (int)size_){
+        cerr << "out of sequence " << i << endl;
+      }
       assert(i >= 0 && i < (int)size_);
       assert(i+dist >= 0 && i+dist < (int)size_);
       sequence_->push_back(cells_[i+dist][i]);

@@ -372,6 +372,9 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
         for (int i:nexts){
           if (dist[i] > best) { best = dist[i]; besti = i; }
         }
+        if(besti == -1 || cell->gold_label() < 0){
+          cerr << "no prediction/no gold" << endl;
+        }
         assert(besti >= 0);
         assert(cell->gold_label() >= 0);
         if(do_update){
@@ -529,6 +532,9 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
                 }
               }
             }
+          }
+          if(!params_.do_ner() && !cell->is_entity_correct(dict_)){
+            cerr << "no specification for entity detection." << endl;
           }
           assert(params_.do_ner() || cell->is_entity_correct(dict_));
           bool correct = false;

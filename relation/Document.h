@@ -197,6 +197,9 @@ public:
 		return words_;
 	}
 	bool is_edge(Word* word){
+    if(words_.size() <= 0){
+      std::cerr << "no words for term " << id_ << endl;
+    }
 		assert(words_.size() > 0);
 		if(words_[0] == word || words_[words_.size() - 1] == word){
 			return true;
@@ -214,7 +217,12 @@ private:
 	string arg2_;
 public:
 	Relation(string id, string type, string arg1, string arg2):
-		id_(id), type_(type), arg1_(arg1), arg2_(arg2){assert(arg1 != arg2);}
+		id_(id), type_(type), arg1_(arg1), arg2_(arg2){
+    if(arg1 == arg2){
+      std::cerr << "no words for term " << id_ << endl;
+    }
+    assert(arg1 != arg2);
+  }
 	Relation(const Relation& relation):
 		id_(relation.id()), type_(relation.type()), arg1_(relation.arg1()), arg2_(relation.arg2()){}
 	const string& arg1() const {
@@ -303,6 +311,9 @@ public:
     return nodes_[idx];
   }
   void set_root(TreeNode *root){
+    if(root_ != nullptr){
+      std::cerr << "root is already set" << endl;
+    }
     assert(root_ == nullptr);
     root_ = root;
   }
@@ -345,6 +356,9 @@ public:
 		nodes_[type][cons->id()] = cons;
 	}
 	void add(Term* term){
+    if(contains_term(term->id())){
+      std::cerr << "duplicated term " << term->id() << endl;
+    }    
 		assert(!contains_term(term->id()));
 		terms_.push_back(term);
 		term_ids_.insert(term->id());
@@ -432,6 +446,9 @@ public:
 		return *terms_.at(term_id);
 	}
   string text(int start, int len) const{
+    if(text_->length() < start + len){
+      std::cerr << "index is larger than text size." << std::endl;
+    }    
     assert(text_->length() >= start + len);
 		return convert(text_->tempSubString(start, len));
 	}
@@ -553,6 +570,9 @@ public:
     return dep_entry_.get_id(dep);
   }
   int get_ent_id(const string& ent){
+    if(ent == ""){
+      cerr << "id is empty" << endl;
+    }
     assert(ent != "");
     return ent_entry_.get_id(ent);
   }
@@ -635,7 +655,10 @@ public:
       return id-1;
     }
   }
-  const int get_begin_label(int label_id) const{
+  const int get_begin_label(int label_id) const{        
+    if(get_ent_string(label_id)[0] != 'L' && get_ent_string(label_id)[0] != 'U'){
+      cerr << "Not beginning label" << endl;
+    }
     assert(get_ent_string(label_id)[0] == 'L' || get_ent_string(label_id)[0] == 'U');
     return begin_labels_.at(label_id);
   }

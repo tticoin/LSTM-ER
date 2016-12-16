@@ -32,6 +32,9 @@ private:
 public:
   TableCell(Table& table, int row, int col):
     table_(table), row_(row), col_(col), gold_id_(""), gold_label_(-1), pred_label_(-1), word_(nullptr){
+    if(row < 0 || col < 0){
+      std::cerr << "wrong cell index at (" << row << "," << col << ")" << endl;
+    }
     assert(row >= 0);
     assert(col >= 0);
   };
@@ -39,6 +42,9 @@ public:
     table_(table), row_(row), col_(col), gold_id_(""), gold_label_(word->label_id()), pred_label_(-1), word_(word){
     if(word->direct_term() != nullptr){
       gold_id_ = word->direct_term()->id();
+    }
+    if(row < 0 || col < 0){
+      std::cerr << "wrong cell index at (" << row << "," << col << ")" << endl;
     }
     assert(row >= 0);
     assert(col >= 0);

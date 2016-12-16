@@ -179,6 +179,9 @@ void Word::update(const Parameters& params, Dictionary* dict, unordered_map<stri
       id = dict->get_dep_id(fwd);
       string rev = REVERSE_DEP_HEADER + fwd;
       dict->get_dep_id(rev);
+      if(dict->get_dep_id(rev) != id+1){
+        cerr << "reverse relation is set beforehand" << endl;
+      }
       assert(dict->get_dep_id(rev) == id+1);
     }
     dependencies_ids_.insert(make_pair(id, dep.second));
@@ -191,6 +194,9 @@ void Word::apply(const Dictionary* dict, Sentence *sentence){
     repr_ = "UNK";
   }
   repr_id_ = dict->get_repr_id(repr_);
+  if(repr_id_ < 0){
+    cerr << "no conversion for " << repr_ << endl;
+  }
   assert(repr_id_ >= 0);
   pos_id_ = dict->get_pos_id(pos_);
   if(pos_id_ < 0){
@@ -390,6 +396,9 @@ void Document::read_parse(const string& file, const ParseParameters& parse) {
       if(tag == parse.token_tag()){
         Word *word = new Word(params_, start, end, text(start, end - start), attrs, parse);
         if(parse.is_base()){
+          if(current_sentence == nullptr){
+            cerr << "no sentence for word (" << start << "," << end << ")" << endl;
+          }
           assert(current_sentence != nullptr);
           current_sentence->add(word);
         }
@@ -415,6 +424,9 @@ bool term_less(Term*& t1, Term*& t2){
 
 
 void Document::read_annotation(const string& file) {
+  if(sentences_.size() == 0){
+    cerr << "document has no sentence" << endl;
+  }
   assert(sentences_.size() > 0);
   std::ifstream ifs;
   ifs.open(file);
@@ -496,6 +508,9 @@ void Document::read_annotation(const string& file) {
 
 
 IndexRelation::IndexRelation(const string& id, int arg1, int arg2, const string& type, Dictionary *dict):id_(id){
+  if(arg1 == arg2){
+    cerr << "self-relation is detected for " << arg1 << endl;
+  }
   assert(arg1 != arg2);
   if(arg1 < arg2){
     arg1_ = arg1;

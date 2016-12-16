@@ -9,6 +9,7 @@
 #include <fstream>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 #include <boost/algorithm/string.hpp>
 #include <unordered_set>
 using std::unordered_set;
@@ -26,10 +27,14 @@ template<> struct convert<coin::ParseParameters>{
   static Node encode(const coin::ParseParameters& params) {
     //TODO: encoding
     Node node;
+    std::cerr << "encode is not supported." << std::endl;
     assert(false);
     return node;
   }
   static bool decode(const Node& node, coin::ParseParameters& params){
+    if(!node.IsMap()){
+      std::cerr << "yaml is wrong...." << std::endl;
+    }
     assert(node.IsMap());
     params.extension_ = get<string>(node, "extension", ".split.stanford.so");
     params.sentence_tag_ = get<string>(node, "sentenceTag", "sentence");
@@ -57,6 +62,9 @@ int VERBOSITY;
 Parameters::Parameters(const string& file) {
   try{
     const YAML::Node& doc = YAML::LoadFile(file);
+    if(!doc.IsMap()){
+      std::cerr << "yaml is wrong...." << std::endl;
+    }
     assert(doc.IsMap());
     VERBOSITY = get(doc, "verbosity", 3);
     test_iteration_ = get(doc, "testIteration", -1);
@@ -106,6 +114,10 @@ Parameters::Parameters(const string& file) {
     if(use_sp_sub_tree_exp_){
       use_sp_full_tree_exp_ = true;
     }
+    if(!use_pair_exp_ && !use_rel_exp_ && !use_sp_exp_ &&
+       !use_sp_tree_exp_ && !use_sp_full_tree_exp_){
+      std::cerr << "lstm structure is not specified" << std::endl;
+    }
     assert(use_pair_exp_ || use_rel_exp_ ||  use_sp_exp_ ||
            use_sp_tree_exp_ || use_sp_full_tree_exp_);
     train_dir_ = get<string>(doc, "trainDirectory", "train/");
@@ -148,6 +160,9 @@ Parameters::Parameters(const string& file) {
         for(auto &w2v:w2vs){
           v.insert(v.end(), w2v[key].begin(), w2v[key].end());
         }
+        if(v.size() != w2v_dimension_){
+          std::cerr << "word embedding size is inconsistent" << std::endl;
+        }
         assert(v.size() == w2v_dimension_);
         w2v_.insert(make_pair(key, v));
       }
@@ -184,13 +199,13 @@ int Parameters::read_w2v(const string& w2vfile, unordered_map<string, vector<flo
   FILE *f;
   f = fopen(w2vfile.c_str(), "rb");
   if(f == NULL){
-    cerr << w2vfile << " not found" << endl;
+    std::cerr << w2vfile << " not found" << std::endl;
     exit(-1);
   }
   long long words, size;
   fscanf(f, "%lld", &words);
   fscanf(f, "%lld", &size);
-  cerr << words << " words, " << size << " dimensions" << endl;
+  std::cerr << words << " words, " << size << " dimensions" << std::endl;
   char vocab[max_w];
   // double maxv = 0.;
   for (long long b = 0; b < words; b++) {
