@@ -317,7 +317,8 @@ UnicodeString* Document::read_file(const string& file) const{
 }
 
 string Document::convert(const UnicodeString& str) const{
-  char result[str.length()*2];
+  int length = str.extract(0, str.length(), NULL, "utf8");
+  char result[length+1];
   str.extract(0, str.length(), result, "utf8");
   return string(result);
 }
