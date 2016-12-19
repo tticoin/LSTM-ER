@@ -21,14 +21,22 @@ using namespace boost::algorithm;
 namespace coin {
 
 void Dictionary::update(const Parameters& params, DocumentCollection& collection){
-  unordered_map<string, unsigned> counts;
+  unordered_map<string, unsigned> word_counts;
+  unordered_map<string, unsigned> dep_counts;
   for(Document* doc:collection.documents()){
     for(Sentence* sentence:doc->sentences()){
       for(Word* word:sentence->words()){
-        if(counts.find(word->repr()) != counts.end()){
-          counts[word->repr()]++;
+        if(word_counts.find(word->repr()) != word_counts.end()){
+          word_counts[word->repr()]++;
         }else{
-          counts[word->repr()] = 1;
+          word_counts[word->repr()] = 1;
+        }
+        for(pair<string, unordered_set<Word*> > dep:word->dependencies()){
+          if(dep_counts.find(dep.first) != dep_counts.end()){
+            dep_counts[dep.first] += dep.second.size();
+          }else{
+            dep_counts[dep.first] = dep.second.size();
+          }
         }
       }
     }
@@ -36,7 +44,7 @@ void Dictionary::update(const Parameters& params, DocumentCollection& collection
   for(Document* doc:collection.documents()){
     for(Sentence* sentence:doc->sentences()){
       for(Word* word:sentence->words()){
-        word->update(params, this, counts);
+        word->update(params, this, word_counts, dep_counts);
       }
     }
   }
@@ -155,8 +163,8 @@ void Dictionary::apply(DocumentCollection& collection) const{
 }
 
 
-void Word::update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& counts){
-  if(counts[repr_] < params.min_frequency() && params.w2v().find(repr_) == params.w2v().end()){
+void Word::update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts){
+  if(word_counts[repr_] < params.min_frequency() && params.w2v().find(repr_) == params.w2v().end()){
     if(cnn::rand01() < params.unk_prob()){
       // ignore this word
       repr_ = "UNK";
@@ -167,12 +175,40 @@ void Word::update(const Parameters& params, Dictionary* dict, unordered_map<stri
   pos_id_ = dict->get_pos_id(pos_);
   wn_id_ = dict->get_wn_id(wn_);
   label_id_ = dict->get_ent_id(label_);
+  unordered_set<string> ignored_deps[2];
+  unordered_set<Word*> ignored_dep_words[2];
+  for(pair<string, unordered_set<Word*> > dep:dependencies_){
+    if(dep_counts[dep.first] < params.min_dep_frequency()){
+      if(cnn::rand01() < params.unk_dep_prob()){
+        if(dep.first.find_first_of(REVERSE_DEP_HEADER) == 0){
+          ignored_deps[1].insert(dep.first);
+          ignored_dep_words[1].insert(dep.second.begin(), dep.second.end());
+        }else{
+          ignored_deps[0].insert(dep.first);
+          ignored_dep_words[0].insert(dep.second.begin(), dep.second.end());
+        }
+      }
+    }
+  }
+  if(ignored_deps[0].size() > 0){
+    for(string ignored_dep:ignored_deps[0]){
+      dependencies_.erase(ignored_dep);
+    }
+    dependencies_.insert(make_pair("UNK", ignored_dep_words[0]));
+  }                           
+  if(ignored_deps[1].size() > 0){
+    for(string ignored_dep:ignored_deps[1]){
+      dependencies_.erase(ignored_dep);
+    }
+    dependencies_.insert(make_pair(REVERSE_DEP_HEADER+"UNK", ignored_dep_words[1]));
+  }                           
   for(pair<string, unordered_set<Word*> > dep:dependencies_){
     int id = 0;
+    
     if(dep.first.find_first_of(REVERSE_DEP_HEADER) == 0){
       string fwd = dep.first.substr(REVERSE_DEP_HEADER.size());
       dict->get_dep_id(fwd);
-      string rev = REVERSE_DEP_HEADER + fwd;
+      string rev = dep.first;
       id = dict->get_dep_id(rev);
     }else{
       string fwd = dep.first;
@@ -212,21 +248,37 @@ void Word::apply(const Dictionary* dict, Sentence *sentence){
     }
     label_id_ = NEGATIVE_ENTITY_ID;
   }
+  
+  unordered_set<string> ignored_deps[2];
+  unordered_set<Word*> ignored_dep_words[2];
   for(pair<string, unordered_set<Word*> > dep:dependencies_){
-    int id = 0;
-    if(dep.first.find_first_of(REVERSE_DEP_HEADER) == 0){
-      string fwd = dep.first.substr(REVERSE_DEP_HEADER.size());
-      string rev = REVERSE_DEP_HEADER + fwd;
-      id = dict->get_dep_id(rev);
-    }else{
-      string fwd = dep.first;
-      id = dict->get_dep_id(fwd);
-    }
-    if(id == -1 || id == 0){
+    if(dict->get_dep_id(dep.first) <= 0){
       cerr << "unknown dependency label:" << dep.first << endl;
-      // TODO: consider unknown dependency??
-      id = NEGATIVE_DEPENDENCY_ID;
+      if(dep.first.find_first_of(REVERSE_DEP_HEADER) == 0){
+        ignored_deps[1].insert(dep.first);
+        ignored_dep_words[1].insert(dep.second.begin(), dep.second.end());
+      }else{
+        ignored_deps[0].insert(dep.first);
+        ignored_dep_words[0].insert(dep.second.begin(), dep.second.end());
+      }
     }
+  }
+  if(ignored_deps[0].size() > 0){
+    for(string ignored_dep:ignored_deps[0]){
+      dependencies_.erase(ignored_dep);
+    }
+    dependencies_.insert(make_pair("UNK", ignored_dep_words[0]));
+  }                           
+  if(ignored_deps[1].size() > 0){
+    for(string ignored_dep:ignored_deps[1]){
+      dependencies_.erase(ignored_dep);
+    }
+    dependencies_.insert(make_pair(REVERSE_DEP_HEADER+"UNK", ignored_dep_words[1]));
+  }                           
+
+  for(pair<string, unordered_set<Word*> > dep:dependencies_){
+    int id = dict->get_dep_id(dep.first);
+    assert(id != -1 && id != 0);
     dependencies_ids_.insert(make_pair(id, dep.second));
   }
 }

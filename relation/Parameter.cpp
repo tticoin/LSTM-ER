@@ -79,6 +79,7 @@ Parameters::Parameters(const string& file) {
     iteration_ = get(doc, "iteration", 20);
     entity_iteration_ = get(doc, "entityIteration", 20);
     min_frequency_ = get(doc, "minFrequency", 2);
+    min_dep_frequency_ = get(doc, "minDepFrequency", 50);
     minibatch_= get(doc, "minibatch", 1);
     lstm_layers_ = get(doc, "lstmLayers", 1);
     train_beam_size_ = get(doc, "trainBeamSize", 1);
@@ -88,6 +89,7 @@ Parameters::Parameters(const string& file) {
     h2dropout_ = get(doc, "h2dropout", 0.1);
     odropout_ = get(doc, "odropout", 0.1);
     unk_prob_ = get(doc, "unkProb", 0.1);
+    unk_dep_prob_ = get(doc, "unkDepProb", 0.1);
     lambda_ = get(doc, "lambda", 1e-5);
     epsilon_ = get(doc, "epsilon", 1e-6);
     rho_ = get(doc, "rho", 0.95);

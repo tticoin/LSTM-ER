@@ -164,10 +164,13 @@ public:
 	const int label_id() const{
 	  return label_id_;
 	}
+  unordered_map<string, unordered_set<Word*> >& dependencies(){
+    return dependencies_;
+  }
 	unordered_map<int, unordered_set<Word*> >& dependencies_ids(){
 	  return dependencies_ids_;
 	}
-	void update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& counts);
+	void update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts);
 	void apply(const Dictionary* dict, Sentence *sentence);
 };
 
@@ -533,6 +536,8 @@ public:
     int neg_ent_id = ent_entry_.get_id("O");
     int neg_rel_id = rel_entry_.get_id(NEGATIVE_RELATION);
     int neg_wn_id = wn_entry_.get_id("0");
+    dep_entry_.get_id("UNK");
+    dep_entry_.get_id(REVERSE_DEP_HEADER+"UNK");
     assert(neg_dep_id == NEGATIVE_DEPENDENCY_ID);
     assert(neg_ent_id == NEGATIVE_ENTITY_ID);
     assert(neg_rel_id == NEGATIVE_RELATION_ID);

@@ -293,6 +293,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
 
   int ent_id = 1;
   int rel_id = 1;
+  int instances = 0;
   
   // init computation graph
   cnn::ComputationGraph *cg = nullptr;
@@ -300,14 +301,18 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
     Table* table = tables[order[t]];
     if(do_update_){
       if(t % params_.minibatch() == 0){
-        if(cg != nullptr){
+        if(cg != nullptr && instances > 0){
           cg->backward();
           sgd_->update(params_.gradient_scale()/params_.minibatch());
           ++updates_;
           delete cg;
+          cg = nullptr;
+          instances = 0;;
         }
-        cg = new cnn::ComputationGraph();
-        init_params(*cg);
+        if(cg == nullptr){
+          cg = new cnn::ComputationGraph();
+          init_params(*cg);
+        }
       }
     }else{
       if(cg != nullptr){
@@ -400,6 +405,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
         prev = cell->pred_label();
         errs.push_back(cross_entropy_loss(f, const_lookup(*cg, e2s, cell->gold_label())));
         //errs.push_back(pickneglogsoftmax(f, cell->gold_label()));
+        instances++;
       }else{
         cell->set_pred_label(cell->gold_label());
       }
@@ -481,6 +487,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
           //}
           errs.push_back(cross_entropy_loss(f, const_lookup(*cg, r2s, forward_label)));
           //errs.push_back(pickneglogsoftmax(f, forward_label));
+          instances++;
           if(params_.use_reverse_rel()){// right to left
             vector<Expression> r2l_rels;
             r2l_rels.push_back(param_vars_[BH]);
@@ -518,6 +525,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
             //  backward_label = NEGATIVE_RELATION_ID;
             //}
             errs.push_back(cross_entropy_loss(f, const_lookup(*cg, r2s, backward_label)));
+            instances++;
             //errs.push_back(pickneglogsoftmax(f, backward_label));
             // prediction
             rbesti = dict_.reverse_relation(rbesti); // normalize to ltor
@@ -618,12 +626,13 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
       ofs.close();
     }
   }
-  if(do_update_){
+  if(do_update_ && instances > 0){
     cg->backward();
     sgd_->update(params_.gradient_scale()/params_.minibatch());
     ++updates_;
     sgd_->status();
     cerr << "\n";
+    instances = 0;
   }
   if(cg != nullptr){
     delete cg;

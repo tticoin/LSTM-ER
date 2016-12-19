@@ -122,6 +122,7 @@ private:
   int iteration_;
   int entity_iteration_;
   int min_frequency_;
+  int min_dep_frequency_;
   int minibatch_;
   int lstm_layers_;
   int test_iteration_;
@@ -132,6 +133,7 @@ private:
   double h2dropout_;
   double odropout_;
   double unk_prob_;
+  double unk_dep_prob_;
   double lambda_;
   double epsilon_;
   double rho_;
@@ -238,6 +240,9 @@ public:
   int min_frequency() const {
     return min_frequency_;
   }
+  int min_dep_frequency() const {
+    return min_dep_frequency_;
+  }
   int minibatch() const{
     return minibatch_;
   }
@@ -276,6 +281,9 @@ public:
   }
   double unk_prob() const{
     return unk_prob_;
+  }
+  double unk_dep_prob() const{
+    return unk_dep_prob_;
   }
   bool use_pair_exp() const{
     return use_pair_exp_;
