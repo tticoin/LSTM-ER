@@ -24,51 +24,53 @@ DepTreeLSTMBuilder::DepTreeLSTMBuilder(unsigned N,
                                        Model* model,
                                        real forget_bias) : layers(layers), N(N) {
   unsigned layer_input_dim = input_dim;
-  for (unsigned i = 0; i < layers; ++i) {
-    // i
-    Parameters* p_x2i = model->add_parameters({hidden_dim, layer_input_dim});
-    LookupParameters* p_h2i = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
-    Parameters* p_c2i = model->add_parameters({hidden_dim, hidden_dim});
-    Parameters* p_bi = model->add_parameters({hidden_dim});
+  if(input_dim > 0){
+    for (unsigned i = 0; i < layers; ++i) {
+      // i
+      Parameters* p_x2i = model->add_parameters({hidden_dim, layer_input_dim});
+      LookupParameters* p_h2i = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
+      Parameters* p_c2i = model->add_parameters({hidden_dim, hidden_dim});
+      Parameters* p_bi = model->add_parameters({hidden_dim});
 
-    // f
-    Parameters* p_x2f = model->add_parameters({hidden_dim, layer_input_dim});
-    LookupParameters* p_h2f = model->add_lookup_parameters(N*N, {hidden_dim, hidden_dim});
-    Parameters* p_c2f = model->add_parameters({hidden_dim, hidden_dim});
-    Parameters* p_bf = model->add_parameters({hidden_dim});
+      // f
+      Parameters* p_x2f = model->add_parameters({hidden_dim, layer_input_dim});
+      LookupParameters* p_h2f = model->add_lookup_parameters(N*N, {hidden_dim, hidden_dim});
+      Parameters* p_c2f = model->add_parameters({hidden_dim, hidden_dim});
+      Parameters* p_bf = model->add_parameters({hidden_dim});
 
-    // o
-    Parameters* p_x2o = model->add_parameters({hidden_dim, layer_input_dim});
-    LookupParameters* p_h2o = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
-    Parameters* p_c2o = model->add_parameters({hidden_dim, hidden_dim});
-    Parameters* p_bo = model->add_parameters({hidden_dim});
+      // o
+      Parameters* p_x2o = model->add_parameters({hidden_dim, layer_input_dim});
+      LookupParameters* p_h2o = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
+      Parameters* p_c2o = model->add_parameters({hidden_dim, hidden_dim});
+      Parameters* p_bo = model->add_parameters({hidden_dim});
 
-    // c (a.k.a. u)
-    Parameters* p_x2c = model->add_parameters({hidden_dim, layer_input_dim});
-    LookupParameters* p_h2c = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
-    Parameters* p_bc = model->add_parameters({hidden_dim});
-    layer_input_dim = hidden_dim;  // output (hidden) from 1st layer is input to next
+      // c (a.k.a. u)
+      Parameters* p_x2c = model->add_parameters({hidden_dim, layer_input_dim});
+      LookupParameters* p_h2c = model->add_lookup_parameters(N, {hidden_dim, hidden_dim});
+      Parameters* p_bc = model->add_parameters({hidden_dim});
+      layer_input_dim = hidden_dim;  // output (hidden) from 1st layer is input to next
 
-    p_bi->lambda = 0.;
-    p_bf->lambda = 0.;
-    p_bo->lambda = 0.;
-    p_bc->lambda = 0.;
+      p_bi->lambda = 0.;
+      p_bf->lambda = 0.;
+      p_bo->lambda = 0.;
+      p_bc->lambda = 0.;
 
-    //TensorTools::Constant(p_bi->values, 1.f);
-    if(forget_bias >= 0.){
-      TensorTools::Constant(p_bf->values, forget_bias);
-    }
-    // else{
-    //   TensorTools::Constant(p_bf->values, 1.f);
-    // }
-    // TensorTools::Constant(p_bo->values, 1.f);
-    // TensorTools::Constant(p_bc->values, 1.f);
+      //TensorTools::Constant(p_bi->values, 1.f);
+      if(forget_bias >= 0.){
+        TensorTools::Constant(p_bf->values, forget_bias);
+      }
+      // else{
+      //   TensorTools::Constant(p_bf->values, 1.f);
+      // }
+      // TensorTools::Constant(p_bo->values, 1.f);
+      // TensorTools::Constant(p_bc->values, 1.f);
     
-    vector<Parameters*> ps = {p_x2i, p_c2i, p_bi, p_x2f, p_c2f, p_bf, p_x2o, p_c2o, p_bo, p_x2c, p_bc};
-    vector<LookupParameters*> lps = {p_h2i, p_h2f, p_h2o, p_h2c};
-    params.push_back(ps);
-    lparams.push_back(lps);
-  }  // layers
+      vector<Parameters*> ps = {p_x2i, p_c2i, p_bi, p_x2f, p_c2f, p_bf, p_x2o, p_c2o, p_bo, p_x2c, p_bc};
+      vector<LookupParameters*> lps = {p_h2i, p_h2f, p_h2o, p_h2c};
+      params.push_back(ps);
+      lparams.push_back(lps);
+    }  // layers
+  }
 }
 
 void DepTreeLSTMBuilder::new_graph_impl(ComputationGraph& cg){

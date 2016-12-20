@@ -100,6 +100,9 @@ public:
   TableCell* cell(int row, int col){
     return cells_[row][col];
   }
+  const vector<int>& chars(int i){
+    return cell(i, i)->word()->char_ids();
+  }
   int word(int i){
     return cell(i, i)->word()->repr_id();
   }

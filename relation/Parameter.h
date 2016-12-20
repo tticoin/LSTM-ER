@@ -111,17 +111,20 @@ public:
 
 class Parameters {
 private:
+  int char_dimension_;
   int word_dimension_;
   int pos_dimension_;
   int wn_dimension_;
   int dep_dimension_;
   int label_dimension_;
+  int h0dimension_;
   int h1dimension_;
   int h2dimension_;
   int h3dimension_;
+  int h4dimension_;
   int iteration_;
   int entity_iteration_;
-  int min_frequency_;
+  int min_word_frequency_;
   int min_dep_frequency_;
   int minibatch_;
   int lstm_layers_;
@@ -129,11 +132,13 @@ private:
   size_t train_beam_size_;
   size_t decode_beam_size_;  
   double idropout_;
-  double hdropout_;
+  double h0dropout_;
+  double h1dropout_;
   double h2dropout_;
+  double entity_odropout_;
   double odropout_;
-  double unk_prob_;
-  double unk_dep_prob_;
+  double unk_word_prob_;
+  double unk_dep_prob_;  
   double lambda_;
   double epsilon_;
   double rho_;
@@ -142,6 +147,7 @@ private:
   double clip_threshold_;
   double forget_bias_;
   double scheduling_k_;
+  double entity_scheduling_k_;
   double gradient_scale_;
   bool clipping_enabled_;
   bool do_ner_;
@@ -157,9 +163,11 @@ private:
   bool use_sp_tree_exp_;
   bool use_sp_full_tree_exp_;
   bool use_sp_sub_tree_exp_;
+  bool has_entity_model_;
+  bool fix_pretained_;
   string train_dir_, test_dir_;
   string text_ext_, ann_ext_, pred_ext_;
-  string model_file_;
+  string entity_model_file_, model_file_;
   unordered_map<string, ParseParameters> parsers_;
   int w2v_dimension_ = 0;
   unordered_map<string, vector<float> > w2v_;
@@ -198,6 +206,9 @@ public:
   const bool use_lowercase() const {
     return use_lowercase_;
   }
+  const bool fix_pretained() const{
+    return fix_pretained_;
+  }
   int test_iteration() const{
     return test_iteration_;
   }
@@ -209,6 +220,9 @@ public:
   }
   int p2v_dimension() const{
     return p2v_dimension_;
+  }
+  int char_dimension() const {
+    return char_dimension_;
   }
   int word_dimension() const {
     return word_dimension_;
@@ -225,6 +239,9 @@ public:
   int label_dimension() const {
     return label_dimension_;
   }
+  int h0dimension() const {
+    return h0dimension_;
+  }
   int h1dimension() const {
     return h1dimension_;
   }
@@ -234,11 +251,14 @@ public:
   int h3dimension() const {
     return h3dimension_;
   }
+  int h4dimension() const {
+    return h4dimension_;
+  }
   int iteration() const {
     return iteration_;
   }
-  int min_frequency() const {
-    return min_frequency_;
+  int min_word_frequency() const {
+    return min_word_frequency_;
   }
   int min_dep_frequency() const {
     return min_dep_frequency_;
@@ -264,14 +284,20 @@ public:
   double scheduling_k() const{
     return scheduling_k_;
   }
+  double entity_scheduling_k() const{
+    return entity_scheduling_k_;
+  }
   double gradient_scale() const{
     return gradient_scale_;
   }
   double idropout() const{
     return idropout_;
   }
-  double hdropout() const{
-    return hdropout_;
+  double h0dropout() const{
+    return h0dropout_;
+  }
+  double h1dropout() const{
+    return h1dropout_;
   }
   double h2dropout() const{
     return h2dropout_;
@@ -279,8 +305,11 @@ public:
   double odropout() const{
     return odropout_;
   }
-  double unk_prob() const{
-    return unk_prob_;
+  double entity_odropout() const{
+    return entity_odropout_;
+  }
+  double unk_word_prob() const{
+    return unk_word_prob_;
   }
   double unk_dep_prob() const{
     return unk_dep_prob_;
@@ -302,6 +331,9 @@ public:
   }
   bool use_sp_sub_tree_exp() const{
     return use_sp_sub_tree_exp_;
+  }
+  bool has_entity_model() const{
+    return has_entity_model_;
   }
   double lambda() const{
     return lambda_;
@@ -338,6 +370,9 @@ public:
   }
   const string& model_file() const {
     return model_file_;
+  }
+  const string& entity_model_file() const {
+    return entity_model_file_;
   }
   const unordered_map<string, vector<float> >& w2v() const{
     return w2v_;

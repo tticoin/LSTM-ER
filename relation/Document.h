@@ -97,6 +97,7 @@ private:
 	vector<Term*> terms_;
 	const Term* direct_term_;
 	unordered_map<string, unordered_set<Word*> > dependencies_;
+  vector<int> char_ids_;
 	int repr_id_;
 	int pos_id_;
   int wn_id_;
@@ -152,6 +153,10 @@ public:
 	const Term* direct_term() const {
 		return direct_term_;
 	}
+  const vector<int>& char_ids() const{
+    assert(char_ids_.size() > 0);
+    return char_ids_;
+  }
 	const int repr_id() const{
 	  return repr_id_;
 	}
@@ -169,8 +174,8 @@ public:
   }
 	unordered_map<int, unordered_set<Word*> >& dependencies_ids(){
 	  return dependencies_ids_;
-	}
-	void update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts);
+	}  
+  void update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts);
 	void apply(const Dictionary* dict, Sentence *sentence);
 };
 
@@ -361,7 +366,7 @@ public:
 	void add(Term* term){
     if(contains_term(term->id())){
       std::cerr << "duplicated term " << term->id() << endl;
-    }    
+    }
 		assert(!contains_term(term->id()));
 		terms_.push_back(term);
 		term_ids_.insert(term->id());
@@ -411,6 +416,9 @@ public:
 	const vector<IndexRelation>& index_rels() const {
 		return index_rels_;
 	}
+  const string& id() const{
+    return id_;
+  }
   const Document& doc() const{
     return doc_;
   }
@@ -435,7 +443,7 @@ private:
 		//TODO: binary_mode
 		text_ = read_file(file);
 	}
-	void read_annotation(const string& file);
+	void read_annotation(const string& file, bool test);
 	void read_parse(const string& file, const ParseParameters& parse);
 	string convert(const UnicodeString& str) const;
 	unordered_map<string, Term*> terms_;
@@ -443,7 +451,7 @@ private:
 	vector<Sentence*> sentences_;
 	vector<Table*> tables_;
 public:
-	Document(const Parameters& params, const string& base);
+	Document(const Parameters& params, const string& base, bool test=false);
 	virtual ~Document();
 	const Term& term(string term_id) const{
 		return *terms_.at(term_id);
@@ -451,7 +459,7 @@ public:
   string text(int start, int len) const{
     if(text_->length() < start + len){
       std::cerr << "index is larger than text size." << std::endl;
-    }    
+    }
     assert(text_->length() >= start + len);
 		return convert(text_->tempSubString(start, len));
 	}
@@ -518,6 +526,7 @@ public:
 
 class Dictionary{
 private:
+  DictEntry char_entry_;
   DictEntry repr_entry_;
   DictEntry pos_entry_;
   DictEntry wn_entry_;
@@ -533,11 +542,11 @@ private:
 public:
   Dictionary(){
     int neg_dep_id = dep_entry_.get_id("");
+    dep_entry_.get_id("UNK");
+    dep_entry_.get_id(REVERSE_DEP_HEADER+"UNK");
     int neg_ent_id = ent_entry_.get_id("O");
     int neg_rel_id = rel_entry_.get_id(NEGATIVE_RELATION);
     int neg_wn_id = wn_entry_.get_id("0");
-    dep_entry_.get_id("UNK");
-    dep_entry_.get_id(REVERSE_DEP_HEADER+"UNK");
     assert(neg_dep_id == NEGATIVE_DEPENDENCY_ID);
     assert(neg_ent_id == NEGATIVE_ENTITY_ID);
     assert(neg_rel_id == NEGATIVE_RELATION_ID);
@@ -546,6 +555,7 @@ public:
   friend class boost::serialization::access;
   template<class Archive>
   void serialize(Archive& ar, const unsigned int) {
+    ar & char_entry_;
     ar & repr_entry_;
     ar & pos_entry_;
     ar & wn_entry_;
@@ -562,6 +572,9 @@ public:
   void update(const Parameters& params, DocumentCollection& collection);
   void apply(DocumentCollection& collection) const;
   void apply(Document& doc) const;
+  int get_char_id(const string& c){
+    return char_entry_.get_id(c);
+  }
   int get_repr_id(const string& repr){
     return repr_entry_.get_id(repr);
   }
@@ -584,6 +597,9 @@ public:
   int get_rel_id(const string& rel){
     return rel_entry_.get_id(rel);
   }
+  string get_char_string(const int c) const {
+    return char_entry_.get_string(c);
+  }
   string get_repr_string(const int repr) const {
     return repr_entry_.get_string(repr);
   }
@@ -602,6 +618,9 @@ public:
   string get_rel_string(const int rel) const {
     return rel_entry_.get_string(rel);
   }
+  int char_types() const{
+    return char_entry_.types();
+  }
   int repr_types() const{
     return repr_entry_.types();
   }
@@ -619,6 +638,9 @@ public:
   }
   int rel_types() const{
     return rel_entry_.types();
+  }
+  int get_char_id(const string& c) const{
+    return char_entry_.get_id(c);
   }
   int get_repr_id(const string& repr) const{
     return repr_entry_.get_id(repr);
@@ -660,7 +682,7 @@ public:
       return id-1;
     }
   }
-  const int get_begin_label(int label_id) const{        
+  const int get_begin_label(int label_id) const{
     if(get_ent_string(label_id)[0] != 'L' && get_ent_string(label_id)[0] != 'U'){
       cerr << "Not beginning label" << endl;
     }

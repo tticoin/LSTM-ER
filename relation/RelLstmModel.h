@@ -26,6 +26,7 @@ private:
   bool do_update_;
   int updates_;
   int iterations_;
+  int char_dim_;
   int word_dim_;
   int pos_dim_;
   int seq_dim_;
@@ -33,18 +34,20 @@ private:
   int rel_dim_;
   cnn::Model model_;
   cnn::Trainer *sgd_;
+  cnn::ZLSTMBuilder charLstm_, icharLstm_;
   cnn::ZLSTMBuilder eseqLstm_, ieseqLstm_;
   cnn::DepTreeLSTMBuilder fullTreeLstm_, ifullTreeLstm_;
   cnn::ZLSTMBuilder depLstm_, idepLstm_;
   cnn::ZLSTMBuilder spDepLstm_, ispDepLstm_;
   cnn::DepTreeLSTMBuilder subTreeLstm_, isubTreeLstm_;
   cnn::DepTreeLSTMBuilder spTreeLstm_, ispTreeLstm_;
-  cnn::LookupParameters *w2i, *p2i, *d2i, *e2i, *wn2i; //word, pos, dependency, label, wordnet
+  cnn::LookupParameters *c2i, *w2i, *p2i, *d2i, *e2i, *wn2i; //char, word, pos, dependency, label, wordnet
   cnn::LookupParameters *e2s, *r2s; // reference distributions
   cnn::Parameters *s2h, *s2h_bias, *h2e, *h2e_bias;
   cnn::Parameters *p2h, *b2h, *d2h, *t2h, *f2h, *h_bias;
   cnn::Parameters *h2r, *h2r_bias;
   vector<Expression> param_vars_;
+  vector<Expression> word_char_exps_;
   void read_w2v();
   void read_p2v();
   void init_entity_scores();

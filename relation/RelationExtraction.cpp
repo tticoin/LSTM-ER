@@ -20,12 +20,12 @@ using namespace boost::filesystem;
 using namespace boost::algorithm;
 
 int main(int argc, char **argv){
-  cnn::Initialize(argc, argv, 1);
   options_description options("Usage");
   options.add_options()
     ("help,h", "help")
     ("test", "test")
     ("train", "train")
+    ("seed", value<int>()->default_value(1), "seed")
     ("yaml,y", value<string>()->required(), "yaml file");
   variables_map variables;
   try{
@@ -45,9 +45,11 @@ int main(int argc, char **argv){
   if(variables.count("help") || !(do_train ^ do_test)){
     cout << options << endl;
     return 0;
-  } 
+  }
+  int seed = variables["seed"].as<int>();
+  cnn::Initialize(argc, argv, seed);
   string yaml_file = variables["yaml"].as<string>();
-  Parameters params(yaml_file);
+    Parameters params(yaml_file);
   if(do_train){
     DocumentCollection train_data(params, params.train_dir());
     Dictionary dict;
@@ -57,7 +59,7 @@ int main(int argc, char **argv){
     dict.apply(test_data);
     vector<Table*> test_tables = test_data.collect_tables();
     
-    if(params.do_ner() && params.entity_iteration() > 0){
+    if((params.do_ner() && params.entity_iteration() > 0) && !params.has_entity_model()){
       // pretraining
       RelLSTMModel model(params, dict);
       for(int i = 1;i <= params.entity_iteration();++i){
@@ -67,15 +69,15 @@ int main(int argc, char **argv){
         cerr << "test: " << endl;
         model.predict(test_tables, true);
       }
-      std::ofstream os(params.model_file());
+      std::ofstream os(params.entity_model_file());
       model.save_model(os);
       os.close();
     }
     RelLSTMModel *model;
     Dictionary dict2;
-    if(params.do_ner() && params.entity_iteration() > 0){
+    if((params.do_ner() && params.entity_iteration() > 0) || params.has_entity_model()){
       // pretraining
-      std::ifstream is(params.model_file());
+      std::ifstream is(params.entity_model_file());
       model = new RelLSTMModel(params, dict2, is);
       is.close();
     }else{
@@ -102,7 +104,7 @@ int main(int argc, char **argv){
     if(exists(p) && is_directory(p)){
       for(directory_iterator it(p); it != directory_iterator(); ++it){
         if(is_regular_file(*it) && ends_with(it->path().string(), params.text_ext())){
-          Document doc(params, it->path().string().substr(0, it->path().string().length() - params.text_ext().length()));
+          Document doc(params, it->path().string().substr(0, it->path().string().length() - params.text_ext().length()), true);
           dict.apply(doc);
           model.output(doc.tables());
         }

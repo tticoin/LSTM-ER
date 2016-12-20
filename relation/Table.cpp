@@ -38,7 +38,6 @@ Table::Table(const Sentence& sentence):
     }
     assert(rel.arg2() != rel.arg1());
     assert(cells_[rel.arg2()][rel.arg1()]->gold_label() < 0);
-    
     cells_[rel.arg2()][rel.arg1()]->set_gold_label(rel.type());
     cells_[rel.arg2()][rel.arg1()]->set_gold_id(rel.id());
   }

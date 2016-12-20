@@ -51,6 +51,10 @@ void Dictionary::update(const Parameters& params, DocumentCollection& collection
   // add w2v words to dict
   for(pair<string, vector<float> > wv:params.w2v()){
     get_repr_id(wv.first);
+    int size = wv.first.size();
+    for(int i = 0;i < size;++i){
+      get_char_id(string(1,wv.first[i]));
+    }
   }
   for(const pair<string, int>& ent_label:ent_entry_.dict()){
     if(ent_label.first[0] == 'L' || ent_label.first[0] == 'U'){
@@ -164,12 +168,16 @@ void Dictionary::apply(DocumentCollection& collection) const{
 
 
 void Word::update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts){
-  if(word_counts[repr_] < params.min_frequency() && params.w2v().find(repr_) == params.w2v().end()){
-    if(cnn::rand01() < params.unk_prob()){
+  if(word_counts[repr_] < params.min_word_frequency() && params.w2v().find(repr_) == params.w2v().end()){
+    if(cnn::rand01() < params.unk_word_prob()){
       // ignore this word
       repr_ = "UNK";
       pos_ = "UNK";
     }
+  }
+  int size = repr_.size();
+  for(int i = 0;i < size;++i){
+    char_ids_.push_back(dict->get_char_id(string(1,repr_[i])));
   }
   repr_id_ = dict->get_repr_id(repr_);
   pos_id_ = dict->get_pos_id(pos_);
@@ -204,7 +212,6 @@ void Word::update(const Parameters& params, Dictionary* dict, unordered_map<stri
   }                           
   for(pair<string, unordered_set<Word*> > dep:dependencies_){
     int id = 0;
-    
     if(dep.first.find_first_of(REVERSE_DEP_HEADER) == 0){
       string fwd = dep.first.substr(REVERSE_DEP_HEADER.size());
       dict->get_dep_id(fwd);
@@ -229,6 +236,12 @@ void Word::apply(const Dictionary* dict, Sentence *sentence){
     // ignore this word
     repr_ = "UNK";
   }
+  int size = repr_.size();
+  for(int i = 0;i < size;++i){
+    int char_id = dict->get_char_id(string(1,repr_[i]));
+    char_ids_.push_back(char_id);
+    assert(char_id >= 0);
+  }
   repr_id_ = dict->get_repr_id(repr_);
   if(repr_id_ < 0){
     cerr << "no conversion for " << repr_ << endl;
@@ -248,7 +261,6 @@ void Word::apply(const Dictionary* dict, Sentence *sentence){
     }
     label_id_ = NEGATIVE_ENTITY_ID;
   }
-  
   unordered_set<string> ignored_deps[2];
   unordered_set<Word*> ignored_dep_words[2];
   for(pair<string, unordered_set<Word*> > dep:dependencies_){
@@ -278,6 +290,9 @@ void Word::apply(const Dictionary* dict, Sentence *sentence){
 
   for(pair<string, unordered_set<Word*> > dep:dependencies_){
     int id = dict->get_dep_id(dep.first);
+    if(id == -1 || id == 0){
+      cerr << "unknown dependency label:" << dep.first << endl;
+    }
     assert(id != -1 && id != 0);
     dependencies_ids_.insert(make_pair(id, dep.second));
   }
@@ -317,10 +332,10 @@ vector<Table*> DocumentCollection::collect_tables(){
   return tables;
 }
 
-Document::Document(const Parameters& params, const string& base):params_(params), has_annotation_(false), id_(base) {
+Document::Document(const Parameters& params, const string& base, bool test):params_(params), has_annotation_(false), id_(base) {
   read_text(base+params.text_ext());
   read_parse(base+params.parsers().at(params.base_parser()).extension(), params.parsers().at(params.base_parser()));
-  read_annotation(base+params.ann_ext());
+  read_annotation(base+params.ann_ext(), test);
 }
 
 vector<Table*>& Document::tables(){
@@ -364,6 +379,11 @@ UnicodeString* Document::read_file(const string& file) const{
   char *tmp = new char[len+1];
   ifs.read(tmp, len);
   UnicodeString *text = new UnicodeString(tmp, "utf8");
+  // check bytes
+  // int length = text->extract(0, text->length(), NULL, "utf8");
+  // std::vector<char> result(length + 1);
+  // text->extract(0, text->length(), &result[0], "utf8");
+  // cerr << file << ":" << text->length() << ":" << length << endl;
   delete[] tmp;
   return text;
 }
@@ -476,14 +496,21 @@ bool term_less(Term*& t1, Term*& t2){
 }
 
 
-void Document::read_annotation(const string& file) {
+void Document::read_annotation(const string& file, bool test) {
   if(sentences_.size() == 0){
     cerr << "document has no sentence" << endl;
   }
   assert(sentences_.size() > 0);
   std::ifstream ifs;
   ifs.open(file);
-  if(ifs){
+  if(test || !ifs){
+    for(Sentence* sentence:sentences_){
+      sentence->build_word_annotations();
+    }
+    if(ifs){
+      ifs.close();
+    }
+  }else{
     has_annotation_ = true;
     string line;
     while(getline(ifs, line)){
@@ -552,10 +579,6 @@ void Document::read_annotation(const string& file) {
       sentence->build_word_annotations();
     }
     ifs.close();
-  }else{
-    for(Sentence* sentence:sentences_){
-      sentence->build_word_annotations();
-    }
   }
 }
 
@@ -930,9 +953,9 @@ void Sentence::calculate_dep_tree(const Dictionary* dict){
     //    max_child = dep_tree_.node(idx)->children().size();
     // }
   }
-  //if(dep_tree_.root() != nullptr){
-  //  cerr << "id:" << doc().id() << ":" << id_ << endl;
-  //}
+  if(dep_tree_.root() == nullptr){
+    cerr << "cannot find root for document id:" << doc().id() << ", sentence id:" << id_ << endl;
+  }
   assert(dep_tree_.root() != nullptr);
 }
 

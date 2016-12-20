@@ -9,7 +9,6 @@
 #include <fstream>
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <boost/algorithm/string.hpp>
 #include <unordered_set>
 using std::unordered_set;
@@ -32,9 +31,6 @@ template<> struct convert<coin::ParseParameters>{
     return node;
   }
   static bool decode(const Node& node, coin::ParseParameters& params){
-    if(!node.IsMap()){
-      std::cerr << "yaml is wrong...." << std::endl;
-    }
     assert(node.IsMap());
     params.extension_ = get<string>(node, "extension", ".split.stanford.so");
     params.sentence_tag_ = get<string>(node, "sentenceTag", "sentence");
@@ -62,34 +58,38 @@ int VERBOSITY;
 Parameters::Parameters(const string& file) {
   try{
     const YAML::Node& doc = YAML::LoadFile(file);
-    if(!doc.IsMap()){
-      std::cerr << "yaml is wrong...." << std::endl;
-    }
     assert(doc.IsMap());
     VERBOSITY = get(doc, "verbosity", 3);
     test_iteration_ = get(doc, "testIteration", -1);
+    char_dimension_ = get(doc, "charDimension", 50);
     word_dimension_ = get(doc, "wordDimension", 50);
     pos_dimension_ = get(doc, "posDimension", 8);
     wn_dimension_ = get(doc, "wordNetDimension", 0);
     dep_dimension_ = get(doc, "depDimension", 8);
     label_dimension_ = get(doc, "labelDimension", 8);
+    h0dimension_ = get(doc, "h0dimension", 16);
     h1dimension_ = get(doc, "h1dimension", 32);
-    h2dimension_ = get(doc, "h2dimension", 32);
+    h2dimension_ = get(doc, "h2dimension", h1dimension_);
     h3dimension_ = get(doc, "h3dimension", 32);
+    h4dimension_ = get(doc, "h4dimension", h3dimension_);
     iteration_ = get(doc, "iteration", 20);
     entity_iteration_ = get(doc, "entityIteration", 20);
-    min_frequency_ = get(doc, "minFrequency", 2);
-    min_dep_frequency_ = get(doc, "minDepFrequency", 50);
+    int min_frequency = get(doc, "minFrequency", 2);
+    min_word_frequency_ = get(doc, "minWordFrequency", min_frequency);
+    min_dep_frequency_ = get(doc, "minDepFrequency", min_frequency);
     minibatch_= get(doc, "minibatch", 1);
     lstm_layers_ = get(doc, "lstmLayers", 1);
     train_beam_size_ = get(doc, "trainBeamSize", 1);
     decode_beam_size_ = get(doc, "decodeBeamSize", 1);
     idropout_ = get(doc, "idropout", 0.1);
-    hdropout_ = get(doc, "hdropout", 0.1);
-    h2dropout_ = get(doc, "h2dropout", 0.1);
+    h0dropout_ = get(doc, "h0dropout", 0.0);
+    h1dropout_ = get(doc, "h1dropout", 0.0);
+    h2dropout_ = get(doc, "h2dropout", 0.0);
     odropout_ = get(doc, "odropout", 0.1);
-    unk_prob_ = get(doc, "unkProb", 0.1);
-    unk_dep_prob_ = get(doc, "unkDepProb", 0.1);
+    entity_odropout_ = get(doc, "entityOdropout", odropout_);
+    double unk_prob = get(doc, "unkProb", 0.1);
+    unk_word_prob_ = get(doc, "unkWordProb", unk_prob);
+    unk_dep_prob_ = get(doc, "unkDepProb", unk_prob);
     lambda_ = get(doc, "lambda", 1e-5);
     epsilon_ = get(doc, "epsilon", 1e-6);
     rho_ = get(doc, "rho", 0.95);
@@ -97,6 +97,7 @@ Parameters::Parameters(const string& file) {
     eta_decay_ =  get(doc, "etaDecay", 0.05);
     forget_bias_ = get(doc, "forgetBias", -1.);
     scheduling_k_ = get(doc, "schedulingK", 1.0);
+    entity_scheduling_k_ = get(doc, "entitySchedulingK", scheduling_k_);
     gradient_scale_ = get(doc, "gradientScale", 1.0);
     clip_threshold_ = get(doc, "clipThreshold", 5.);
     clipping_enabled_ = get(doc, "clippingEnabled", true);
@@ -122,6 +123,8 @@ Parameters::Parameters(const string& file) {
     }
     assert(use_pair_exp_ || use_rel_exp_ ||  use_sp_exp_ ||
            use_sp_tree_exp_ || use_sp_full_tree_exp_);
+    has_entity_model_ = get(doc, "hasEntityModel", false);
+    fix_pretained_ = get(doc, "fixPretrained", false);
     train_dir_ = get<string>(doc, "trainDirectory", "train/");
     test_dir_ = get<string>(doc, "testDirectory", "test/");
     
@@ -129,7 +132,8 @@ Parameters::Parameters(const string& file) {
     ann_ext_ = get<string>(doc, "annotationExtension", ".ann");
     pred_ext_ = get<string>(doc, "predictionExtension", ".pred.ann");
 
-    model_file_ = get<string>(doc, "modelFile", "model.bin");
+    model_file_ = get<string>(doc, "modelFile", "model.txt");
+    entity_model_file_ = get<string>(doc, "entityModelFile", "entitymodel.txt");
     
     string w2vFile = get<string>(doc, "w2vFile", "");
     if(w2vFile != ""){
@@ -201,13 +205,13 @@ int Parameters::read_w2v(const string& w2vfile, unordered_map<string, vector<flo
   FILE *f;
   f = fopen(w2vfile.c_str(), "rb");
   if(f == NULL){
-    std::cerr << w2vfile << " not found" << std::endl;
+    cerr << w2vfile << " not found" << endl;
     exit(-1);
   }
   long long words, size;
   fscanf(f, "%lld", &words);
   fscanf(f, "%lld", &size);
-  std::cerr << words << " words, " << size << " dimensions" << std::endl;
+  cerr << words << " words, " << size << " dimensions" << endl;
   char vocab[max_w];
   // double maxv = 0.;
   for (long long b = 0; b < words; b++) {

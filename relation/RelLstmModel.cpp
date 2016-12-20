@@ -3,7 +3,6 @@
  *
  *  Created on: 2015/09/13 Author: miwa
  */
-
 #include <algorithm>
 #include <fstream>
 #include <list>
@@ -19,9 +18,10 @@ namespace coin {
 
 RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict):
   params_(params), dict_(dict), updates_(0), iterations_(0),
+  char_dim_(params_.char_dimension()), 
   word_dim_(params_.w2v_dimension() > 0 ? params_.w2v_dimension() : params_.word_dimension()),
   pos_dim_(params_.p2v_dimension() > 0 ? params_.p2v_dimension() : params_.pos_dimension()),
-  seq_dim_(word_dim_ + pos_dim_ + params_.wn_dimension()),
+  seq_dim_(word_dim_ + (char_dim_ > 0 ? params_.h0dimension() * 2 : 0) + pos_dim_ + params_.wn_dimension()),
   pair_dim_(((params_.stack_seq() || params_.use_pair_exp()) ? params_.h1dimension() * 2 : 0) +
             (params_.stack_tree() ? params_.h1dimension() * 2 : 0)),
   rel_dim_(((params_.stack_seq() || params_.stack_tree()) ?
@@ -33,7 +33,8 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict):
   // sgd_(new cnn::AdadeltaTrainer(&model_, params_.lambda(), params_.epsilon(), params.rho())),
   sgd_(new cnn::AdamTrainer(&model_, params_.lambda(), params_.eta0())),
   // sgd_(new cnn::AdaMaxTrainer(&model_, params_.lambda(), params_.eta0())),
-  // hidden layer
+  charLstm_(params.lstm_layers(), char_dim_, params_.h0dimension(), &model_, params_.forget_bias()),
+  icharLstm_(params.lstm_layers(), char_dim_, params_.h0dimension(), &model_, params_.forget_bias()),
   eseqLstm_(params.lstm_layers(), seq_dim_, params_.h1dimension(), &model_, params_.forget_bias()),
   ieseqLstm_(params.lstm_layers(), seq_dim_, params_.h1dimension(), &model_, params_.forget_bias()),
   // fullTreeLstm_(1, params.lstm_layers(), seq_dim_ + params_.dep_dimension(), params_.h1dimension(), &model_, params_.forget_bias()),
@@ -45,12 +46,16 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict):
   subTreeLstm_(2, params.lstm_layers(), rel_dim_ + params_.dep_dimension(), params_.h2dimension(), &model_, params_.forget_bias()),
   isubTreeLstm_(2, params.lstm_layers(), rel_dim_ + params_.dep_dimension(), params_.h2dimension(), &model_, params_.forget_bias()),
   spTreeLstm_(1, params.lstm_layers(), rel_dim_ + params_.dep_dimension(), params_.h2dimension(), &model_, params_.forget_bias()),
-  ispTreeLstm_(1, params.lstm_layers(), rel_dim_ + params_.dep_dimension(), params_.h2dimension(), &model_, params_.forget_bias()){
+  ispTreeLstm_(1, params.lstm_layers(), rel_dim_ + params_.dep_dimension(), params_.h2dimension(), &model_, params_.forget_bias())
+{
   // learning params
   sgd_->eta_decay = params_.eta_decay();
   sgd_->clipping_enabled = params_.clipping_enabled();
   sgd_->clip_threshold = params_.clip_threshold() * params_.minibatch();
   // dict (word, POS, dependency, label, wordnet embeddings)
+  if(char_dim_ > 0){
+    c2i = model_.add_lookup_parameters(dict_.char_types(), cnn::Dim(char_dim_, 1));
+  }
   w2i = model_.add_lookup_parameters(dict_.repr_types(), cnn::Dim(word_dim_, 1));
   if(params_.w2v().size() > 0){
     read_w2v();
@@ -81,20 +86,20 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict):
   s2h_bias->lambda = 0.;
   h2e_bias->lambda = 0.;
   // rel
-  p2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), pair_dim_ * 2));
-  b2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 2));
-  d2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 2));
-  t2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 3));
-  f2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 3));
-  h_bias = model_.add_parameters(cnn::Dim(params_.h3dimension(), 1));
-  h2r = model_.add_parameters(cnn::Dim(dict_.rel_types(), params_.h3dimension()));
+  p2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), pair_dim_ * 2));
+  b2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 2));
+  d2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 2));
+  t2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 3));
+  f2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 3));
+  h_bias = model_.add_parameters(cnn::Dim(params_.h4dimension(), 1));
+  h2r = model_.add_parameters(cnn::Dim(dict_.rel_types(), params_.h4dimension()));
   h2r_bias = model_.add_parameters(cnn::Dim(dict_.rel_types(), 1));
   h_bias->lambda = 0.;
   h2r_bias->lambda = 0.;
   // reference scores
   e2s = model_.add_lookup_parameters(dict_.ent_types(), cnn::Dim(dict_.ent_types(), 1), false);
   r2s = model_.add_lookup_parameters(dict_.rel_types(), cnn::Dim(dict_.rel_types(), 1), false);
-  
+
   init_entity_scores();
   init_relation_scores();
 }
@@ -144,9 +149,10 @@ void RelLSTMModel::init_relation_scores(){
 // Load model
 RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict, ifstream &is):
   params_(params), dict_(dict), updates_(0), iterations_(0),
+  char_dim_(params_.char_dimension()), 
   word_dim_(params_.w2v_dimension() > 0 ? params_.w2v_dimension() : params_.word_dimension()),
   pos_dim_(params_.p2v_dimension() > 0 ? params_.p2v_dimension() : params_.pos_dimension()),
-  seq_dim_(word_dim_ + pos_dim_ + params_.wn_dimension()),
+  seq_dim_(word_dim_ + (char_dim_ > 0 ? params_.h0dimension() * 2 : 0) + pos_dim_ + params_.wn_dimension()),
   pair_dim_(((params_.stack_seq() || params_.use_pair_exp()) ? params_.h1dimension() * 2 : 0) +
             (params_.stack_tree() ? params_.h1dimension() * 2 : 0)),
   rel_dim_(((params_.stack_seq() || params_.stack_tree()) ?
@@ -158,7 +164,8 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict, ifstream 
   // sgd_(new cnn::AdadeltaTrainer(&model_, params_.lambda(), params_.epsilon(), params.rho())),
   sgd_(new cnn::AdamTrainer(&model_, params_.lambda(), params_.eta0())),
   // sgd_(new cnn::AdaMaxTrainer(&model_, params_.lambda(), params_.eta0())),
-  // hidden layer
+  charLstm_(params.lstm_layers(), char_dim_, params_.h0dimension(), &model_, params_.forget_bias()),
+  icharLstm_(params.lstm_layers(), char_dim_, params_.h0dimension(), &model_, params_.forget_bias()),
   eseqLstm_(params.lstm_layers(), seq_dim_, params_.h1dimension(), &model_, params_.forget_bias()),
   ieseqLstm_(params.lstm_layers(), seq_dim_, params_.h1dimension(), &model_, params_.forget_bias()),
   // fullTreeLstm_(1, params.lstm_layers(), seq_dim_ + params_.dep_dimension(), params_.h1dimension(), &model_, params_.forget_bias()),
@@ -177,6 +184,9 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict, ifstream 
   boost::archive::binary_iarchive ia(is);
   // dict
   ia >> dict_;
+  if(char_dim_ > 0){
+    c2i = model_.add_lookup_parameters(dict_.char_types(), cnn::Dim(char_dim_, 1));
+  }
   w2i = model_.add_lookup_parameters(dict_.repr_types(), cnn::Dim(word_dim_, 1));
   if(pos_dim_ > 0){
     p2i = model_.add_lookup_parameters(dict_.pos_types(), cnn::Dim(pos_dim_, 1));
@@ -196,13 +206,13 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict, ifstream 
   h2e = model_.add_parameters(cnn::Dim(dict_.ent_types(), params_.h3dimension()));
   h2e_bias = model_.add_parameters(cnn::Dim(dict_.ent_types(), 1));
   // rel
-  p2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), pair_dim_ * 2));
-  b2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 2));
-  d2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 2));
-  t2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 3));
-  f2h = model_.add_parameters(cnn::Dim(params_.h3dimension(), params_.h2dimension() * 3));
-  h_bias = model_.add_parameters(cnn::Dim(params_.h3dimension(), 1));
-  h2r = model_.add_parameters(cnn::Dim(dict_.rel_types(), params_.h3dimension()));
+  p2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), pair_dim_ * 2));
+  b2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 2));
+  d2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 2));
+  t2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 3));
+  f2h = model_.add_parameters(cnn::Dim(params_.h4dimension(), params_.h2dimension() * 3));
+  h_bias = model_.add_parameters(cnn::Dim(params_.h4dimension(), 1));
+  h2r = model_.add_parameters(cnn::Dim(dict_.rel_types(), params_.h4dimension()));
   h2r_bias = model_.add_parameters(cnn::Dim(dict_.rel_types(), 1));
   // reference scores
   e2s = model_.add_lookup_parameters(dict_.ent_types(), cnn::Dim(dict_.ent_types(), 1), false);
@@ -218,6 +228,7 @@ void RelLSTMModel::save_model(ofstream &os){
 }
 
 void RelLSTMModel::read_w2v(){
+  //TODO: initialize unknown params when fixed 
   for(const auto& wv:params_.w2v()){
     int id = dict_.get_repr_id(wv.first);
     if(id != -1){
@@ -227,6 +238,7 @@ void RelLSTMModel::read_w2v(){
 }
 
 void RelLSTMModel::read_p2v(){
+  //TODO: initialize unknown params when fixed 
   for(const auto& wv:params_.p2v()){
     int id = dict_.get_pos_id(wv.first);
     if(id != -1){
@@ -265,7 +277,12 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
   }
   
   // scheduled sampling
-  double k = params_.scheduling_k();
+  double k;
+  if(ent_only){
+    k = params_.entity_scheduling_k();
+  }else{
+    k = params_.scheduling_k();
+  }
   double scheduled_threshold = k < 1.0 ? -0.0 : k / (k + exp(sgd_->epoch / k));
   std::uniform_real_distribution<double> distrib(0.0, 1.0);
 
@@ -294,7 +311,6 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
   int ent_id = 1;
   int rel_id = 1;
   int instances = 0;
-  
   // init computation graph
   cnn::ComputationGraph *cg = nullptr;
   for(int t = 0; t < ntables; ++t){
@@ -307,7 +323,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
           ++updates_;
           delete cg;
           cg = nullptr;
-          instances = 0;;
+          instances = 0;
         }
         if(cg == nullptr){
           cg = new cnn::ComputationGraph();
@@ -322,6 +338,11 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
       init_params(*cg);
     }
 
+    int ent_num = table->size();
+    if(ent_num > 200){
+      cerr << "too many in " << table->sentence().doc().id() << endl;
+      continue; // ignore too long sentence
+    }
     vector<Expression> errs;
 
     ofstream ofs;
@@ -329,8 +350,26 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
       string fname = table->sentence().doc().id()+params_.pred_ext();
       ofs.open(fname.c_str(), ofstream::out | ofstream::app);
     }
+    // word    
+    if(char_dim_ > 0){
+      word_char_exps_.clear();
+      for(int i = 0;i < ent_num;++i){
+        charLstm_.new_graph(*cg);
+        charLstm_.start_new_sequence();
+        const vector<int>& c = table->chars(i);
+        assert(c.size() > 0);
+        for (vector<int>::const_iterator ci = c.begin(); ci != c.end(); ++ci) {
+          charLstm_.add_input(dropout_lookup(*cg, c2i, *ci));
+        }
+        icharLstm_.new_graph(*cg);
+        icharLstm_.start_new_sequence();
+        for (vector<int>::const_reverse_iterator ci = c.rbegin(); ci != c.rend(); ++ci) {
+          icharLstm_.add_input(dropout_lookup(*cg, c2i, *ci));
+        }
+        word_char_exps_.push_back(dropout_output(concatenate({charLstm_.back(), icharLstm_.back()}), params_.h0dropout()));
+      }
+    }
     // entity
-    int ent_num = table->size();
     vector<Expression> seqExps(ent_num);
     bool use_seq = params_.stack_seq() || params_.use_pair_exp(); 
     if(use_seq || params_.stack_tree()){
@@ -367,7 +406,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
         }else{
           entExp = dropout_output(seqExps[i], params_.h2dropout());
         }
-        Expression h = dropout_output(tanh(affine_transform({param_vars_[SBH], param_vars_[S2H], entExp})), params_.odropout());
+        Expression h = dropout_output(tanh(affine_transform({param_vars_[SBH], param_vars_[S2H], entExp})), params_.entity_odropout());
         Expression f = affine_transform({param_vars_[BE], param_vars_[H2E], h});
         vector<float> dist = as_vector(cg->incremental_forward());
         double best = -9e99;
@@ -376,9 +415,6 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
         const unordered_set<int>& nexts = dict_.next_entities(prev, is_last);
         for (int i:nexts){
           if (dist[i] > best) { best = dist[i]; besti = i; }
-        }
-        if(besti == -1 || cell->gold_label() < 0){
-          cerr << "no prediction/no gold" << endl;
         }
         assert(besti >= 0);
         assert(cell->gold_label() >= 0);
@@ -541,9 +577,6 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
               }
             }
           }
-          if(!params_.do_ner() && !cell->is_entity_correct(dict_)){
-            cerr << "no specification for entity detection." << endl;
-          }
           assert(params_.do_ner() || cell->is_entity_correct(dict_));
           bool correct = false;
           if (cell->gold_label() == besti && cell->is_entity_correct(dict_)){
@@ -575,7 +608,6 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
               cout << table->sentence().doc().id() << "\t" << cell->row() << "->" << cell->col() << "\t" << dict_.get_rel_string(cell->gold_label()) << "\t" << dict_.get_rel_string(besti) << "\t" << "false" << endl;
             }
           }
-          
           if(output){
             if(besti > 0){
               ofs << "R" << rel_id << "\t";
@@ -626,13 +658,12 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
       ofs.close();
     }
   }
-  if(do_update_ && instances > 0){
+  if(cg != nullptr && do_update_ && instances > 0){
     cg->backward();
     sgd_->update(params_.gradient_scale()/params_.minibatch());
     ++updates_;
     sgd_->status();
     cerr << "\n";
-    instances = 0;
   }
   if(cg != nullptr){
     delete cg;
@@ -682,9 +713,20 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
 
 Expression RelLSTMModel::get_expression(cnn::ComputationGraph& cg, Table *table, int i){
   vector<Expression> expressions;
-  expressions.push_back(dropout_lookup(cg, w2i, table->word(i)));
+  if(char_dim_ > 0){
+    expressions.push_back(word_char_exps_[i]);
+  }
+  if(params_.fix_pretained() && params_.w2v().size() > 0){
+    expressions.push_back(const_lookup(cg, w2i, table->word(i)));
+  }else{
+    expressions.push_back(dropout_lookup(cg, w2i, table->word(i)));
+  }
   if(pos_dim_ > 0){
-    expressions.push_back(dropout_lookup(cg, p2i, table->pos(i)));
+    if(params_.fix_pretained() && params_.p2v().size() > 0){
+      expressions.push_back(const_lookup(cg, p2i, table->pos(i)));
+    }else{
+      expressions.push_back(dropout_lookup(cg, p2i, table->pos(i)));
+    }
   }
   if(params_.wn_dimension() > 0){
     if(table->wn(i) == NEGATIVE_WORDNET_ID){
@@ -701,7 +743,7 @@ Expression RelLSTMModel::get_expression(cnn::ComputationGraph& cg, Table *table,
 Expression RelLSTMModel::get_expression(cnn::ComputationGraph& cg, Table *table, int i, vector<Expression> &seqExps){
   Expression ex;
   if(params_.stack_seq() || params_.stack_tree()){
-    ex = dropout(seqExps[i], params_.hdropout());
+    ex = dropout(seqExps[i], params_.h1dropout());
   }else{
     ex = get_expression(cg, table, i);
   }
@@ -716,7 +758,6 @@ Expression RelLSTMModel::calc_region_expression(cnn::ComputationGraph& cg, Table
   if(start >= end){
     vector<cnn::real> x_values(params_.h1dimension() * 2, 0.); 
     Expression x = input(cg, {params_.h1dimension() * 2}, &x_values);
-    cg.incremental_forward();
     return x;
   }else{
     vector<Expression>  v;
@@ -1502,3 +1543,4 @@ void RelLSTMModel::calc_fulltree_expressions(cnn::ComputationGraph &cg, Table* t
 }
 
 } /* namespace coin */
+
