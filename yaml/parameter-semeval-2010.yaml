@@ -1,15 +1,21 @@
 !!coin.Parameters
 verbosity: 3
 iteration: 63
+entityIteration: 0
+hasEntityModel: false
+charDimension: 0
 wordDimension: 200
 posDimension: 25
 wordNetDimension: 0
 depDimension: 25
 labelDimension: 25
+h0dimension: 25
 h1dimension: 100
 h2dimension: 100
 h3dimension: 100
-minFrequency: 2
+h4dimension: 100
+minWordFrequency: 2
+minDepFrequency: 0
 clipThreshold: 5
 minibatch: 1
 lstmLayers: 1
@@ -17,7 +23,9 @@ idropout: 0.5
 hdropout: 0.0
 h2dropout: 0.0
 odropout: 0.3
-unkProb: 0.01
+entityOdropout: 0.3
+unkWordProb: 0.01
+unkDepProb: 0.01
 lambda: 1e-6
 epsilon: 1e-6
 rho: 0.95
@@ -25,6 +33,7 @@ eta0: 0.0002
 etaDecay: 0
 forgetBias: -1.0
 schedulingK: 1.0
+entitySchedulingK: 1.0
 gradientScale: 1.0
 clippingEnabled: true
 doNER: false
@@ -40,6 +49,7 @@ useSpTreeExp: true
 useSpFullTreeExp: false
 testIteration: 63
 w2vFile: dict/wikipedia200.bin
+fixPretrained: false
 trainDirectory: data/semeval-2010/corpus/train/
 testDirectory: data/semeval-2010/corpus/test/
 modelFile: models/semeval-test.txt

@@ -51,6 +51,7 @@ int main(int argc, char **argv){
   if(do_train){
     DocumentCollection train_data(params, params.train_dir());
     Dictionary dict;
+    dict.init();
     dict.update(params, train_data);
     vector<Table*> train_tables = train_data.collect_tables();
     DocumentCollection test_data(params, params.test_dir());

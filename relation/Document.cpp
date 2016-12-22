@@ -164,7 +164,7 @@ void Dictionary::apply(DocumentCollection& collection) const{
 
 
 void Word::update(const Parameters& params, Dictionary* dict, unordered_map<string, unsigned>& word_counts, unordered_map<string, unsigned>& dep_counts){
-  if(word_counts[repr_] < params.min_frequency() && params.w2v().find(repr_) == params.w2v().end()){
+  if(word_counts[repr_] < params.min_word_frequency() && params.w2v().find(repr_) == params.w2v().end()){
     if(cnn::rand01() < params.unk_prob()){
       // ignore this word
       repr_ = "UNK";

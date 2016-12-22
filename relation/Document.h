@@ -531,7 +531,8 @@ private:
   unordered_map<int, unordered_set<int> > prev_first_entities_;
   unordered_map<int, unordered_set<int> > next_last_entities_;
 public:
-  Dictionary(){
+  Dictionary(){}
+  void init(){
     int neg_dep_id = dep_entry_.get_id("");
     int neg_ent_id = ent_entry_.get_id("O");
     int neg_rel_id = rel_entry_.get_id(NEGATIVE_RELATION);

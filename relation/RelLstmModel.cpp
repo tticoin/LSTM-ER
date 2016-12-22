@@ -213,8 +213,8 @@ RelLSTMModel::RelLSTMModel(const Parameters& params, Dictionary& dict, ifstream 
 
 void RelLSTMModel::save_model(ofstream &os){
   boost::archive::binary_oarchive oa(os);
-  oa << dict_;
-  oa << model_;
+  oa << (const Dictionary&)dict_;
+  oa << (const cnn::Model&)model_;
 }
 
 void RelLSTMModel::read_w2v(){

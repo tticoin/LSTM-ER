@@ -79,7 +79,8 @@ Parameters::Parameters(const string& file) {
     iteration_ = get(doc, "iteration", 20);
     entity_iteration_ = get(doc, "entityIteration", 20);
     min_frequency_ = get(doc, "minFrequency", 2);
-    min_dep_frequency_ = get(doc, "minDepFrequency", 50);
+    min_word_frequency_ = get(doc, "minWordFrequency", min_frequency_);
+    min_dep_frequency_ = get(doc, "minDepFrequency", min_frequency_);
     minibatch_= get(doc, "minibatch", 1);
     lstm_layers_ = get(doc, "lstmLayers", 1);
     train_beam_size_ = get(doc, "trainBeamSize", 1);

@@ -122,6 +122,7 @@ private:
   int iteration_;
   int entity_iteration_;
   int min_frequency_;
+  int min_word_frequency_;
   int min_dep_frequency_;
   int minibatch_;
   int lstm_layers_;
@@ -239,6 +240,9 @@ public:
   }
   int min_frequency() const {
     return min_frequency_;
+  }
+  int min_word_frequency() const {
+    return min_word_frequency_;
   }
   int min_dep_frequency() const {
     return min_dep_frequency_;
