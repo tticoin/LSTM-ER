@@ -431,6 +431,9 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
         int end = pred_entity.second;
         int start_offset = table->cell(start, start)->word()->start();
         int end_offset = table->cell(end, end)->word()->end();
+        if(!params_.do_ner()){
+          ent_id = atoi(table->cell(end, end)->gold_id().substr(1).c_str());
+        }
         ofs << "T" << ent_id << "\t";
         ofs << dict_.get_ent_string(table->cell(end, end)->pred_label()).substr(2) << " ";
         ofs << start_offset << " ";
