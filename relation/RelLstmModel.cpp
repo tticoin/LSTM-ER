@@ -340,7 +340,7 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
 
     int ent_num = table->size();
     if(ent_num > 200){
-      cerr << "too many in " << table->sentence().doc().id() << endl;
+      cerr << "too long sentence: " << table->sentence().doc().id() << endl;
       continue; // ignore too long sentence
     }
     vector<Expression> errs;
