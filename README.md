@@ -4,12 +4,13 @@ Implementation of [End-to-End Relation Extraction using LSTMs on Sequences and T
 
 # Requirements
 
-* Fedora Core 22+ (this may work on other linux distributions, but we have not tried them.)  
-* clang++ 3.4+ (or g++ 4.8+)
-* boost 1.57+
-* yaml-cpp 0.5.x
-* ICU4C 54.1+
+* Fedora Core 22 
+* clang++ 3.4
+* boost 1.57
+* yaml-cpp 0.5.1
+* ICU4C 54.1
 
+This code may work on other linux environments, but we have not tried them. 
 For convenience, this package includes snapshot versions of clab/cnn (https://github.com/clab/cnn) and eigen (http://eigen.tuxfamily.org/). These follow the original license.
 
 # Usage
