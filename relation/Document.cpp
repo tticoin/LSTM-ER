@@ -414,6 +414,7 @@ void Document::read_parse(const string& file, const ParseParameters& parse) {
   }
   while(getline(ifs, line)){
     if(line == "")continue;
+    std::cerr << line << std::endl;//added by yoshida
     vector<string> annotations;
     split(annotations, line, bind2nd(equal_to<char>(), '\t'));
     int start = atoi(annotations[0].c_str());

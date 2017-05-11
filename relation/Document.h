@@ -450,6 +450,7 @@ public:
 	}
   string text(int start, int len) const{
     if(text_->length() < start + len){
+      std::cerr << convert(*text_) << " " << text_->length() << " " << start << " " << len << std::endl; //added by yoshida
       std::cerr << "index is larger than text size." << std::endl;
     }    
     assert(text_->length() >= start + len);
