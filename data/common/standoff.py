@@ -81,7 +81,7 @@ for ts in terms.values():
         if term[4] == "":
             print("%s\t%s %d %d\t%s" % (term[2], term[3], term[0], term[1], newtext[term[0]:term[1]]))
         else:
-            assert newtext[term[0]:term[1]].replace("&AMP;", "&").replace(" ", "") == term[4].replace(" ", ""), newtext[term[0]:term[1]] + "<=>" + term[4]
+            assert newtext[term[0]:term[1]].replace("&AMP;", "&").replace("&amp;", "&").replace(" ", "") == term[4].replace(" ", ""), newtext[term[0]:term[1]] + "<=>" + term[4]
             print("%s\t%s %d %d\t%s" % (term[2], term[3], term[0], term[1], newtext[term[0]:term[1]]))
 
 for annot in annotation:
