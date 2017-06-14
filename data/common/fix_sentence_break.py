@@ -29,6 +29,14 @@ for line in open(sys.argv[2]):
         arg2 = args[2].split(":",2)
         rels.append([arg1[1], arg2[1]])
 
+for start,end in terms.values():
+    if "\n" in doc[start:end]:
+        l = []
+        l.append(doc[0:start])
+        l.append(doc[start:end].replace("\n", " "))
+        l.append(doc[end:])
+        doc = "".join(l)
+                                                    
 for arg in rels:
     arg1 = arg[0]
     arg2 = arg[1]

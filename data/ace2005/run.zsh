@@ -5,7 +5,7 @@ for i in English/*/timex2norm/*.sgm
 do
     echo $i
     python3 ace2ann.py `echo $i | sed -e 's/.sgm/.apf.xml/g'` $i result/`basename $i .sgm`.txt >! result/`basename $i .sgm`.ann
-done &>! log &
+done &>! log 
 # split & parse
 mkdir text
 java -cp ".:../common/stanford-corenlp-full-2015-04-20/*" edu.stanford.nlp.pipeline.StanfordCoreNLP -props ../common/props_ssplit -outputFormat conll -filelist train_list -outputDirectory text/
@@ -18,7 +18,7 @@ done
 for i in text/*.split.txt
 do
     echo $i && python3 ../common/standoff.py result/`basename $i .split.txt`.txt result/`basename $i .split.txt`.ann $i >! text/`basename $i .split.txt`.split.ann
-done &>! log &
+done &>! log 
 # fix sentence split errors
 mkdir fixed
 for i in text/*.split.txt
