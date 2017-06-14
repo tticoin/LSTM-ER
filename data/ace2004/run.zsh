@@ -34,9 +34,9 @@ done
 # collect data
 mkdir corpus
 cd corpus
-ln -s ../result/*.txt .
-ln -s ../result/*.ann .
-ln -s ../fixed/*.split.txt .
+cp ../result/*.txt .
+cp ../result/*.ann .
+cp ../fixed/*.split.txt .
 cd ..
 # adjust offsets
 for i in corpus/*.split.txt
