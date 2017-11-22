@@ -588,15 +588,25 @@ void RelLSTMModel::predict(vector<Table*> &tables, bool do_update, bool output, 
                 vector<string> rels;
                 split(rels, rel_type, bind2nd(equal_to<char>(), ':'));
                 ofs << rels[1] << " ";
-                ofs << "Arg1:T" << ent_map[cell->row()] << " ";
-                ofs << "Arg2:T" << ent_map[cell->col()] << endl;
+                if(ent_map.find(cell->row()) != ent_map.end()){
+                  ofs << "Arg1:T" << ent_map[cell->row()] << " ";
+                  ofs << "Arg2:T" << ent_map[cell->col()] << endl;
+                }else{
+                  ofs << "Arg1:" << table->cell(cell->row(), cell->row())->gold_id() << " ";
+                  ofs << "Arg2:" << table->cell(cell->col(), cell->col())->gold_id() << endl;
+                }
               }else{
                 string rel_type = dict_.get_rel_string(besti);
                 vector<string> rels;
                 split(rels, rel_type, bind2nd(equal_to<char>(), ':'));
                 ofs << rels[1] << " ";
-                ofs << "Arg1:T" << ent_map[cell->col()] << " ";
-                ofs << "Arg2:T" << ent_map[cell->row()] << endl;
+                if(ent_map.find(cell->row()) != ent_map.end()){
+                  ofs << "Arg1:T" << ent_map[cell->col()] << " ";
+                  ofs << "Arg2:T" << ent_map[cell->row()] << endl;
+                }else{
+                  ofs << "Arg1:" << table->cell(cell->col(), cell->col())->gold_id() << " ";
+                  ofs << "Arg2:" << table->cell(cell->row(), cell->row())->gold_id() << endl;
+                }
               }
               ++rel_id;
             }
