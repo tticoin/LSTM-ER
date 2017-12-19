@@ -47,6 +47,9 @@ see [data/README.md](data/README.md)
 
 ## Obtaining pretrained models
 
+These models are trained on the environments above (with Intel CPU). 
+If you use other environments, please retrain the models to avoid the incompatibility problem. 
+
 ### ACE 2005 (Relation extraction) 
 
 ```
