@@ -103,6 +103,8 @@ int main(int argc, char **argv){
     if(exists(p) && is_directory(p)){
       for(directory_iterator it(p); it != directory_iterator(); ++it){
         if(is_regular_file(*it) && ends_with(it->path().string(), params.text_ext())){
+
+	  std::cerr << it->path().string() << std::endl;  //added by yoshida
           Document doc(params, it->path().string().substr(0, it->path().string().length() - params.text_ext().length()));
           dict.apply(doc);
           model.output(doc.tables());

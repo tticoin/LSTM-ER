@@ -313,12 +313,14 @@ public:
   TreeNode *node(int idx){
     return nodes_[idx];
   }
-  void set_root(TreeNode *root){
+  bool set_root(TreeNode *root){
     if(root_ != nullptr){
       std::cerr << "root is already set" << endl;
+      return false;
     }
     assert(root_ == nullptr);
     root_ = root;
+    return true;
   }
   const TreeNode *root() const{
     return root_;
@@ -344,10 +346,11 @@ private:
 	vector<vector<std::pair<int, int> > > paths_;
 	unordered_set<string> term_ids_;
   Tree dep_tree_;
+  bool is_correct_;
 	unordered_map<string, unordered_map<string, Constituent*>> nodes_;
 public:
 	Sentence(int start, int end, string id, const Document& doc):
-		Node(start, end), doc_(doc), id_(id), missing_terms_(0), missing_rels_(0){}
+		Node(start, end), doc_(doc), id_(id), missing_terms_(0), missing_rels_(0), is_correct_(true){}
 	virtual ~Sentence();
 	void add(Word* word){
 		words_.push_back(word);
@@ -392,6 +395,12 @@ public:
 	bool contains_term(const string& term_id){
 		return term_ids_.find(term_id) != term_ids_.end();
 	}
+  bool is_correct() const{
+    return is_correct_;
+  }
+  void is_correct(bool correct){
+    is_correct_ = correct;
+  }
 	const vector<Word*>& words() const {
 		return words_;
 	}
@@ -450,6 +459,7 @@ public:
 	}
   string text(int start, int len) const{
     if(text_->length() < start + len){
+      std::cerr << convert(*text_) << " " << text_->length() << " " << start << " " << len << std::endl; //added by yoshida
       std::cerr << "index is larger than text size." << std::endl;
     }    
     assert(text_->length() >= start + len);

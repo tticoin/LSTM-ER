@@ -142,6 +142,13 @@ void Dictionary::update(const Parameters& params, DocumentCollection& collection
       sentence->calculate_shortest_paths();
       sentence->calculate_dep_tree(this);
     }
+    for(auto it = doc->sentences().begin(); it != doc->sentences().end();){
+      if(!((*it)->is_correct())){
+        it = doc->sentences().erase(it);
+      }else{
+        ++it;
+      }
+    }
   }
 }
 
@@ -153,6 +160,13 @@ void Dictionary::apply(Document& doc) const{
     sentence->apply_relations(this);
     sentence->calculate_shortest_paths();
     sentence->calculate_dep_tree(this);
+  }
+  for(auto it = doc.sentences().begin(); it != doc.sentences().end();){
+    if(!((*it)->is_correct())){
+      it = doc.sentences().erase(it);
+    }else{
+      ++it;
+    }
   }
 }
 
@@ -414,6 +428,7 @@ void Document::read_parse(const string& file, const ParseParameters& parse) {
   }
   while(getline(ifs, line)){
     if(line == "")continue;
+    std::cerr << line << std::endl;//added by yoshida
     vector<string> annotations;
     split(annotations, line, bind2nd(equal_to<char>(), '\t'));
     int start = atoi(annotations[0].c_str());
@@ -924,7 +939,9 @@ void Sentence::calculate_dep_tree(const Dictionary* dict){
   //int max_child = 0;
   for(int idx = 0;idx < nwords;++idx){
     if(dep_tree_.node(idx)->parent() < 0){
-      dep_tree_.set_root(dep_tree_.node(idx));
+      if(!dep_tree_.set_root(dep_tree_.node(idx))){
+        is_correct(false);
+      }
     }
     // if(max_child < dep_tree_.node(idx)->children().size()){
     //    max_child = dep_tree_.node(idx)->children().size();
@@ -933,7 +950,10 @@ void Sentence::calculate_dep_tree(const Dictionary* dict){
   //if(dep_tree_.root() != nullptr){
   //  cerr << "id:" << doc().id() << ":" << id_ << endl;
   //}
-  assert(dep_tree_.root() != nullptr);
+  if(dep_tree_.root() == nullptr){
+    cerr << "root is null" << endl;
+    is_correct(false); 
+  }
 }
 
 } /* namespace coin */
