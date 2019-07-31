@@ -8,7 +8,7 @@ do
 done &>! log 
 # split & parse
 mkdir text
-java -cp "../common/stanford-corenlp-full-2015-04-20/*" edu.stanford.nlp.pipeline.StanfordCoreNLP -props ../common/props_ssplit -outputFormat conll -filelist train_list -outputDirectory text/
+java -cp ".:../common/stanford-corenlp-full-2015-04-20/*" edu.stanford.nlp.pipeline.StanfordCoreNLP -props ../common/props_ssplit -outputFormat conll -filelist train_list -outputDirectory text/
 # conll to text
 for i in text/*.conll
 do
@@ -26,7 +26,7 @@ do
     python3 ../common/fix_sentence_break.py $i text/`basename $i .split.txt`.split.ann fixed/`basename $i .split.txt`.txt
 done
 # parse ssplit-fixed text
-java -cp "../common/stanford-corenlp-full-2015-04-20/*" edu.stanford.nlp.pipeline.StanfordCoreNLP -props ../common/props_fixed -outputFormat conll -filelist train_list_fixed -outputDirectory fixed/
+java -cp ".:../common/stanford-corenlp-full-2015-04-20/*" edu.stanford.nlp.pipeline.StanfordCoreNLP -props ../common/props_fixed -outputFormat conll -filelist train_list_fixed -outputDirectory fixed/
 for i in fixed/*.conll
 do
     python3 ../common/conll2txt.py $i >! fixed/`basename $i .txt.conll`.split.txt
